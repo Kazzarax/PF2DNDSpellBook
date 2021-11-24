@@ -52,6 +52,5 @@ namespace Pathfinder2ESpellBook
         public string Time { get; set; }
         public string Traditions { get; set; }
         public string Traits { get; set; }
-        public string Effects { get; set; }
     }
 }
