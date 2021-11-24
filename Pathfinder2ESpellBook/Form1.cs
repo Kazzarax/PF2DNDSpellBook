@@ -3,16 +3,12 @@ namespace Pathfinder2ESpellBook
 {
     using System;
     using System.IO;
-    using System.Collections;
     using Newtonsoft.Json;
     using System.Windows.Forms;
     using BuildSpellBook;
     using static BuildSpellBook.SpellEntry;
     using System.Data;
-    using System.Reflection;
     using System.Text.RegularExpressions;
-    using static Pathfinder2ESpellBook.Form1;
-    using System.Collections.Generic;
 
     public partial class Form1 : Form
     {
@@ -36,14 +32,14 @@ namespace Pathfinder2ESpellBook
         public string MatchRegex(string source, string pattern)
         {
             
-            Regex rgx_CritSuccess = new Regex(pattern);
+            Regex rgx_CritSuccess = new Regex(pattern, RegexOptions.IgnoreCase);
             var match = rgx_CritSuccess.Match(source);
             return match.ToString();
         }
 
         public string RemoveFromString(string source, string pattern)
         {
-            Regex rgx = new Regex(pattern);
+            Regex rgx = new Regex(pattern, RegexOptions.IgnoreCase);
             var match = rgx.Replace(source, "");
             return match;
         }
@@ -64,7 +60,7 @@ namespace Pathfinder2ESpellBook
             {
                 using (StreamWriter sw = File.CreateText(fn))
                 {
-                    sw.WriteLine("Name" + "|" + "Area" + "|" + "AreaType" + "|" + "Category" + "|" + "Components" + "|" + "Description" + "|" + "Critical Success" + "|" + "Success" + "|" + "Failure" + "|" + "CriticalFailure" + "|" + "Duration" + "|" + "HasCounteractCheck" + "|" + "Level" + "|" + "Materials" + "|" + "Prepared" + "|" + "Range" + "|" + "Rules" + "|" + "Resistances" + "|" + "CharacterGains" + "|" + "Save_Basic" + "|" + "Save_Value" + "|" + "School" + "|" + "SpellType" + "|" + "Sustained" + "|" + "Target" + "|" + "Cast Time/Actions" + "|" + "Traditions" + "|" + "Traits" + "|" + "Effects");
+                    sw.WriteLine("Name" + "|" + "Level" + "|" + "Category" + "|" + "Traditions" +"|" + "Area" + "|" + "Range" + "|" + "Target" + "|" + "Duration" + "|" + "CastTime/AP" + "|" + "CharacterGains" + "|" + "TargetGains" + "|" + "Save_Basic" + "|" + "Save_Type" + "|" + "Materials" + "|" + "Prepared" + "|" + "Components" + "|" + "Traits" + "|" + "HasCounteractCheck" + "|" + "School" + "|" + "Sustained" + "|" +  "Critical Success" + "|" + "Success" + "|" + "Failure" + "|" + "CritFailure" + "|" + "Description");
                 }
             }
             foreach (var spell in obj.results)
@@ -89,19 +85,16 @@ namespace Pathfinder2ESpellBook
                 var materials = "";
                 var prepared = "";
                 var range = "";
-                var rules = "";
-                var resistances = "";
                 var charactergains = "";
                 var save_basic = "";
                 var save_value = "";
                 var school = "";
-                var spelltype = "";
                 var sustained = "";
                 var target = "";
                 var time = "";
                 var traditions = "";
                 var traits = "";
-                var effects = "";
+                var targeteffect = "";
 
                 currentSpellCount += 1;
 
@@ -122,14 +115,18 @@ namespace Pathfinder2ESpellBook
                 Utils.Try(() => save_basic = spell.data.save.basic.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => save_value = spell.data.save.value.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => school = spell.data.school.value.ToString().Replace("|", "_").Replace("\n", ""));
-                Utils.Try(() => spelltype = spell.type.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => sustained = spell.data.sustained.value.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => target = spell.data.target.value.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => time = spell.data.time.value.ToString().Replace("|", "_").Replace("\n", ""));
-                Utils.Try(() => traditions = spell.data.traditions.value.ToString().Replace("|", "_").Replace("\n", ""));
-                Utils.Try(() => traits = spell.data.traits.value.ToString().Replace("|", "_").Replace("\n", ""));
-                Utils.Try(() => effects = spell.effects.ToString().Replace("|", "_").Replace("\n", ""));
                 Utils.Try(() => description = spell.data.description.value.ToString().Replace("|", "_").Replace("\n", "").Replace("'", ""));
+
+
+                if (name == "Vampiric Maiden") 
+                {
+                    var x = 1;
+                }
+
+
 
                 area = (area == "" ? "" : area + "(ft)");
                 components = (component_focus == "False" ? "" : "Focus");
@@ -139,38 +136,58 @@ namespace Pathfinder2ESpellBook
                 description = RemoveFromString(description, "\\<\\/?(?:\\w|\\w+)\\>");
                 description = RemoveFromString(description, "<span class=\"pf2-icon\">");
                 description = RemoveFromString(description, "\\<\\/?(?:\\w|\\w+)\\s?\\/?\\>");
-                criticalsuccess = MatchRegex(description, "Critical Success(?:\\s\\w+)+.");
-                success = MatchRegex(description, "Success(?<!Critical Success)(?:\\s\\w+)+.");
-                failure = MatchRegex(description, "Failure(?<!Critical Failure)(?:\\s\\w+)+.");
-                criticalfailure = MatchRegex(description, "Critical Failure(?:\\s\\w+)+.");
+                criticalsuccess = MatchRegex(description, "Critical Success\\:?(?:\\s\\w+)+.");
+                success = MatchRegex(description, "Success\\:?(?<!Critical Success)(?:\\s\\w+)+.");
+                failure = MatchRegex(description, "Failure\\:?(?<!Critical Failure)(?:\\s\\w+)+.");
+                criticalfailure = MatchRegex(description, "Critical Failure\\:?(?:\\s\\w+)+.");
+                
 
-                //Extract Resistances
-                string[] desParts = description.Split('.');
-                foreach(var despart in desParts)
+                string[] trad = spell.data.traditions.value;
+                foreach (var t in trad)
                 {
-                    Regex resistancergx = new Regex("resistance");
-                    var match = resistancergx.Match(despart);
-                    if(match.Length > 0)
-                    {
-                        resistances = (resistances == "" ? despart : resistances + ", " + despart);
-                    }
-                     
+                    traditions = (traditions == "" ? t.ToString() : traditions + ", " + t.ToString());
                 }
-
+                string[] traitsstring = spell.data.traits.value;
+                foreach (var x in traitsstring)
+                {
+                    traits = (traits == "" ? x.ToString() : traits + ", " + x.ToString());
+                }
+                
                 //Extract 'Character Gains'
                 string[] gainParts = description.Split('.');
                 foreach (var gnpart in gainParts)
                 {
-                    Regex gainrgx = new Regex("You gain");
+                    Regex gainrgx = new Regex("(you (gain|lose|loose))", RegexOptions.IgnoreCase);                    
                     var match = gainrgx.Match(gnpart);
                     if (match.Length > 0)
                     {
-                        charactergains = (charactergains == "" ? gnpart : charactergains + ", " + gnpart);
+                        var x = MatchRegex(gnpart, "(C?r?i?t?i?c?a?l? ?(?:Success|Failure))");
+                        if (x.Length == 0)
+                        { 
+                            charactergains = (charactergains == "" ? gnpart : charactergains + ", " + gnpart);
+                        }
                     }
 
                 }
+
+                string[] targetgainsParts = description.Split('.');
+                foreach (var tarpart in targetgainsParts)
+                {
+                    if(tarpart != charactergains) 
+                    {
+                        Regex gainrgx = new Regex("target takes", RegexOptions.IgnoreCase);
+                        var match = gainrgx.Match(tarpart);
+                        if (match.Length > 0)
+                        { var x = MatchRegex(tarpart, "(C?r?i?t?i?c?a?l? ?(?:Success|Failure))");
+                            if (x.Length == 0)
+                            {
+                                targeteffect = (targeteffect == "" ? tarpart : targeteffect + ", " + tarpart);
+                            }
+                        }
+                    }
+                }
                 spellLoadingText.Invoke(new Action(() => { spellLoadingText.Text = "Currently Writing Spell " + currentSpellCount + " of " + totalSpellCount + "."; }));                
-                File.AppendAllText(fn,Environment.NewLine + name + "|" + area + "|" + areatype + "|" + category + "|" + components + "|" + description + "|" + criticalsuccess + "|" + success + "|" + failure + "|" + criticalfailure + "|" + duration + "|" + hascounteractcheck + "|" + level + "|" + materials + "|" + prepared + "|" + range + "|" + rules + "|" + resistances + "|" + charactergains + "|" + save_basic + "|" + save_value + "|" + school + "|" + spelltype + "|" + sustained + "|" + target + "|" + time + "|" + traditions + "|" + traits + "|" +effects);
+                File.AppendAllText(fn,Environment.NewLine + name + "|" + level + "|" + category + "|"+ traditions + " | " + area +" "+areatype + "|" + range + "|" + target + "|" + duration + "|" + time + "|" + charactergains + "|" + targeteffect + "|" + save_basic + "|" + save_value + "|" + materials + "|" + prepared + "|" + components + "|" + traits + "|" + hascounteractcheck + "|" + school + "|" + sustained + "|" + criticalsuccess + "|" + success + "|" + failure + "|" + criticalfailure + "|" + description);
 
             }
             MessageBox.Show("File Created at: " + savePath + ".csv");
@@ -198,8 +215,6 @@ namespace Pathfinder2ESpellBook
             dt.Columns.Add("Materials", typeof(string));
             dt.Columns.Add("Prepared", typeof(string));
             dt.Columns.Add("Range", typeof(string));
-            dt.Columns.Add("Rules", typeof(string));
-            dt.Columns.Add("Resistances", typeof(string));
             dt.Columns.Add("CharacterGains", typeof(string));
             dt.Columns.Add("Save_Basic", typeof(string));
             dt.Columns.Add("Save_Value", typeof(string));
@@ -210,7 +225,6 @@ namespace Pathfinder2ESpellBook
             dt.Columns.Add("Time", typeof(string));
             dt.Columns.Add("Traditions", typeof(string));
             dt.Columns.Add("Traits", typeof(string));
-            dt.Columns.Add("Effects", typeof(string));
             return dt;
         }
 
